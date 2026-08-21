@@ -1,0 +1,143 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: microwatch-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: microwatch
+      POSTGRES_USER: microwatch
+      POSTGRES_PASSWORD: microwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - microwatch
+
+  registry-service:
+    build:
+      context: ./backend/registry-service
+    container_name: microwatch-registry-service
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: microwatch
+      POSTGRES_USER: microwatch
+      POSTGRES_PASSWORD: microwatch
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+    networks:
+      - microwatch
+
+  monitoring-service:
+    build:
+      context: ./backend/monitoring-service
+    container_name: microwatch-monitoring-service
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: microwatch
+      POSTGRES_USER: microwatch
+      POSTGRES_PASSWORD: microwatch
+      REGISTRY_URL: http://registry-service:8082
+      NOTIFICATION_URL: http://notification-service:8084
+      API_GATEWAY_URL: http://api-gateway:8080
+      MONITORING_INTERVAL_MS: 10000
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - registry-service
+      - notification-service
+    networks:
+      - microwatch
+
+  notification-service:
+    build:
+      context: ./backend/notification-service
+    container_name: microwatch-notification-service
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: microwatch
+      POSTGRES_USER: microwatch
+      POSTGRES_PASSWORD: microwatch
+    ports:
+      - "8084:8084"
+    depends_on:
+      - postgres
+    networks:
+      - microwatch
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+    container_name: microwatch-api-gateway
+    restart: always
+    environment:
+      REGISTRY_URL: http://registry-service:8082
+      MONITORING_URL: http://monitoring-service:8081
+      NOTIFICATION_URL: http://notification-service:8084
+    ports:
+      - "8080:8080"
+    depends_on:
+      - registry-service
+      - monitoring-service
+      - notification-service
+    networks:
+      - microwatch
+
+  user-service:
+    build:
+      context: ./backend/demo-user-service
+    container_name: microwatch-user-service
+    restart: always
+    ports:
+      - "9001:9001"
+    networks:
+      - microwatch
+
+  order-service:
+    build:
+      context: ./backend/demo-order-service
+    container_name: microwatch-order-service
+    restart: always
+    ports:
+      - "9002:9002"
+    networks:
+      - microwatch
+
+  payment-service:
+    build:
+      context: ./backend/demo-payment-service
+    container_name: microwatch-payment-service
+    restart: always
+    ports:
+      - "9003:9003"
+    networks:
+      - microwatch
+
+  dashboard:
+    build:
+      context: ./web/dashboard
+    container_name: microwatch-dashboard
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - microwatch
+
+networks:
+  microwatch:
+    driver: bridge
+
+volumes:
+  postgres_data:

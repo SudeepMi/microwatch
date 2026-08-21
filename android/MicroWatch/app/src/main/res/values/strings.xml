@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">MicroWatch</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="services">Monitored Services</string>
+    <string name="notifications">Notifications</string>
+    <string name="offline_message">Offline — Check your internet connection</string>
+    <string name="channel_id">microwatch_alerts</string>
+    <string name="channel_name">MicroWatch Alerts</string>
+    <string name="channel_desc">Failure and recovery notifications for microservices</string>
+</resources>
